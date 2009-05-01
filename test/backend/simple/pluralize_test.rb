@@ -28,6 +28,16 @@ class I18nSimpleBackendPluralizeTest < Test::Unit::TestCase
   def test_pluralize_given_3_returns_plural_string
     assert_equal 'bars', @backend.send(:pluralize, nil, {:one => 'bar', :other => 'bars'}, 3)
   end
+  
+  def test_pluralize_uses_lambda_supplied_rule
+    @backend.store_translations 'foo', {
+      :pluralize => lambda { |n| n == 1 ? :foo : :bar }
+    }
+    
+    assert_equal 'foo', @backend.send(:pluralize, 'foo', {:foo => 'foo', :bar => 'bar'}, 1)
+    assert_equal 'bar', @backend.send(:pluralize, 'foo', {:foo => 'foo', :bar => 'bar'}, 2)
+    assert_equal 'bar', @backend.send(:pluralize, 'foo', {:foo => 'foo', :bar => 'bar'}, 3)
+  end
 
   def test_interpolate_given_incomplete_pluralization_data_raises_invalid_pluralization_data
     assert_raises(I18n::InvalidPluralizationData){ @backend.send(:pluralize, nil, {:one => 'bar'}, 2) }

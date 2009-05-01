@@ -136,17 +136,39 @@ module I18n
           nil
         end
 
-        # Picks a translation from an array according to English pluralization
-        # rules. It will pick the first translation if count is not equal to 1
-        # and the second translation if it is equal to 1. Other backends can
-        # implement more flexible or complex pluralization rules.
+        # Picks a pluralization rule specified in translation tables for a language or
+        # uses default pluralization rules.
+        #
+        # This is how pluralization rules are defined in translation tables, English
+        # language for example:
+        #
+        #   store_translations :'en', {
+        #     :pluralize => lambda { |n| n == 1 ? :one : :other }
+        #   }
+        #
+        # Rule must return a symbol to use with pluralization, it must be one of:
+        #   :zero, :one, :two, :few, :many, :other
         def pluralize(locale, entry, count)
           return entry unless entry.is_a?(Hash) and count
 
           key = :zero if count == 0 && entry.has_key?(:zero)
-          key ||= count == 1 ? :one : :other
+          locale_pluralize = lookup(locale, :pluralize)
+          if locale_pluralize && locale_pluralize.respond_to?(:call)
+            key ||= locale_pluralize.call(count)
+          else
+            key ||= default_pluralizer(count)
+          end
           raise InvalidPluralizationData.new(entry, count) unless entry.has_key?(key)
+
           entry[key]
+        end
+
+        # Default pluralizer, used if pluralization rule is not defined in translations.
+        #
+        # Uses English pluralization rules -- it will pick the first translation if count is not equal to 1
+        # and the second translation if it is equal to 1.
+        def default_pluralizer(count)
+          count == 1 ? :one : :other
         end
 
         # Interpolates values into a given string.
