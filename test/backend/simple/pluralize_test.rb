@@ -30,13 +30,29 @@ class I18nSimpleBackendPluralizeTest < Test::Unit::TestCase
   end
   
   def test_pluralize_uses_lambda_supplied_rule
-    @backend.store_translations 'foo', {
-      :pluralize => lambda { |n| n == 1 ? :foo : :bar }
+    @backend.store_translations 'ru', {
+      :pluralize => lambda { |n| 
+        modulo10 = n.modulo(10)
+        modulo100 = n.modulo(100)
+
+        if modulo10 == 1 && modulo100 != 11
+          :one
+        elsif (modulo10 == 2 || modulo10 == 3 || modulo10 == 4) && !(modulo100 == 12 || modulo100 == 13 || modulo100 == 14)
+          :few
+        elsif modulo10 == 0 || (modulo10 == 5 || modulo10 == 6 || modulo10 == 7 || modulo10 == 8 || modulo10 == 9) || (modulo100 == 11 || modulo100 == 12 || modulo100 == 13 || modulo100 == 14)
+          :many
+        else
+          :other
+        end
+      }
     }
     
-    assert_equal 'foo', @backend.send(:pluralize, 'foo', {:foo => 'foo', :bar => 'bar'}, 1)
-    assert_equal 'bar', @backend.send(:pluralize, 'foo', {:foo => 'foo', :bar => 'bar'}, 2)
-    assert_equal 'bar', @backend.send(:pluralize, 'foo', {:foo => 'foo', :bar => 'bar'}, 3)
+    entry = {:one => "рубин", :few => "рубина", :many => "рубинов", :other => "рубина"}
+    
+    assert_equal 'рубин', @backend.send(:pluralize, 'ru', entry, 1)
+    assert_equal 'рубина', @backend.send(:pluralize, 'ru', entry, 2)
+    assert_equal 'рубинов', @backend.send(:pluralize, 'ru', entry, 9)
+    assert_equal 'рубина', @backend.send(:pluralize, 'ru', entry, 3.14)
   end
 
   def test_interpolate_given_incomplete_pluralization_data_raises_invalid_pluralization_data
